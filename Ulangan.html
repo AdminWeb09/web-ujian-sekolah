@@ -32,24 +32,44 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      font-size: 15px;
     }
     button:disabled {
       background: #ccc;
       cursor: not-allowed;
     }
+    button.reset-btn {
+      background: #ff9800;
+      margin-left: 0;
+    }
+    button#submitBtn {
+      background: #2196F3;
+    }
     h3 {
       color: #333;
+    }
+    .notif {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+      padding: 8px 16px;
+      border-radius: 5px;
+      margin-bottom: 16px;
+      font-size: 15px;
+      display: none;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>Ulangan Sekolah</h2>
+    <div id="notif" class="notif"></div>
     <div id="soal-container"></div>
     <div>
       <button id="prevBtn" onclick="prevPage()">Sebelumnya</button>
       <button id="nextBtn" onclick="nextPage()">Berikutnya</button>
-      <button id="submitBtn" onclick="kirimJawaban()" style="display:none;background:#2196F3;">Kirim Jawaban</button>
+      <button id="submitBtn" onclick="confirmSubmit()" style="display:none;">Kirim Jawaban</button>
+      <button id="resetBtn" class="reset-btn" onclick="resetUlangan()" style="display:none;">Ulangi Ulangan</button>
     </div>
     <h3 id="hasil"></h3>
   </div>
@@ -67,7 +87,26 @@
 
     let currentPage = 0;
     const soalPerHalaman = 10;
+    // Load jawaban dari localStorage jika ada
     let jawabanUser = {};
+    if (localStorage.getItem('jawabanUser')) {
+      try {
+        jawabanUser = JSON.parse(localStorage.getItem('jawabanUser')) || {};
+      } catch(e) {
+        jawabanUser = {};
+      }
+    }
+
+    function saveJawaban() {
+      localStorage.setItem('jawabanUser', JSON.stringify(jawabanUser));
+    }
+
+    function showNotif(msg) {
+      const el = document.getElementById('notif');
+      el.innerText = msg;
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 2000);
+    }
 
     function loadSoal() {
       const container = document.getElementById("soal-container");
@@ -83,8 +122,8 @@
         soal.pilihan.forEach(pil => {
           let checked = jawabanUser[nomor] === pil ? "checked" : "";
           html += `<label>
-              <input type="radio" name="soal${nomor}" value="${pil}" ${checked} 
-              onchange="jawabanUser[${nomor}]='${pil}'"> ${pil}
+              <input type="radio" name="soal${nomor}" value="${pil}" ${checked}
+              onchange="jawabanUser[${nomor}]='${pil}'; saveJawaban();"> ${pil}
             </label><br>`;
         });
         html += `</div>`;
@@ -94,6 +133,8 @@
       document.getElementById("prevBtn").disabled = currentPage === 0;
       document.getElementById("nextBtn").style.display = currentPage === Math.ceil(soalList.length/soalPerHalaman)-1 ? "none" : "inline-block";
       document.getElementById("submitBtn").style.display = currentPage === Math.ceil(soalList.length/soalPerHalaman)-1 ? "inline-block" : "none";
+      document.getElementById("resetBtn").style.display = "none";
+      document.getElementById("hasil").innerText = "";
     }
 
     function nextPage() {
@@ -102,7 +143,7 @@
       let adaKosong = false;
       let nomorKosong = null;
 
-      for (let i = start + 1; i <= end; i++) {
+      for (let i = start + 1; i <= end && i <= soalList.length; i++) {
         if (!jawabanUser[i]) {
           adaKosong = true;
           nomorKosong = i;
@@ -111,7 +152,7 @@
       }
 
       if (adaKosong) {
-        alert("Masih ada soal yang belum dijawab!");
+        showNotif("Masih ada soal yang belum dijawab!");
         const ele = document.querySelector(`input[name='soal${nomorKosong}']`);
         if (ele) ele.scrollIntoView({behavior: "smooth", block: "center"});
         return;
@@ -126,10 +167,17 @@
       loadSoal();
     }
 
+    function confirmSubmit() {
+      // Konfirmasi
+      if (confirm("Yakin ingin mengirim jawaban? Setelah dikirim, jawaban tidak bisa diubah.")) {
+        kirimJawaban();
+      }
+    }
+
     function kirimJawaban() {
       for (let i = 1; i <= soalList.length; i++) {
         if (!jawabanUser[i]) {
-          alert(`Soal nomor ${i} belum dijawab!`);
+          showNotif(`Soal nomor ${i} belum dijawab!`);
           currentPage = Math.floor((i - 1) / soalPerHalaman);
           loadSoal();
           const ele = document.querySelector(`input[name='soal${i}']`);
@@ -151,8 +199,27 @@
       document.getElementById("prevBtn").style.display = "none";
       document.getElementById("nextBtn").style.display = "none";
       document.getElementById("submitBtn").style.display = "none";
+      document.getElementById("resetBtn").style.display = "inline-block";
+      saveJawaban();
+      // Hapus jawaban dari localStorage agar saat ulangi kosong lagi
+      localStorage.removeItem('jawabanUser');
     }
 
+    function resetUlangan() {
+      if (confirm("Ulangi ulangan dari awal? Semua jawaban akan dihapus!")) {
+        jawabanUser = {};
+        currentPage = 0;
+        document.getElementById("soal-container").style.display = "block";
+        document.getElementById("prevBtn").style.display = "inline-block";
+        document.getElementById("nextBtn").style.display = "inline-block";
+        document.getElementById("hasil").innerText = "";
+        document.getElementById("resetBtn").style.display = "none";
+        saveJawaban();
+        loadSoal();
+      }
+    }
+
+    // On first load
     loadSoal();
   </script>
 </body>
