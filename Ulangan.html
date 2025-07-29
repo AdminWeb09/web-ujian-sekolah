@@ -23,6 +23,18 @@
       background: #fff;
       border: 1px solid #ddd;
       border-radius: 6px;
+      position: relative;
+    }
+    .warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+      padding: 8px 16px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      font-size: 15px;
+      display: block;
+      position: relative;
     }
     button {
       margin: 10px 5px;
@@ -44,22 +56,11 @@
     h3 {
       color: #333;
     }
-    .notif {
-      background: #fff3cd;
-      color: #856404;
-      border: 1px solid #ffeeba;
-      padding: 8px 16px;
-      border-radius: 5px;
-      margin-bottom: 16px;
-      font-size: 15px;
-      display: none;
-    }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>Ulangan Sekolah</h2>
-    <div id="notif" class="notif"></div>
     <div id="soal-container"></div>
     <div>
       <button id="prevBtn" onclick="prevPage()">Sebelumnya</button>
@@ -83,13 +84,7 @@
     let currentPage = 0;
     const soalPerHalaman = 10;
     let jawabanUser = {};
-
-    function showNotif(msg) {
-      const el = document.getElementById('notif');
-      el.innerText = msg;
-      el.style.display = 'block';
-      setTimeout(() => { el.style.display = 'none'; }, 2000);
-    }
+    let warningSoal = null; // nomor soal yang akan diberi warning
 
     function loadSoal() {
       const container = document.getElementById("soal-container");
@@ -100,13 +95,17 @@
 
       soalList.slice(start, end).forEach((soal, idx) => {
         let nomor = start + idx + 1;
-        let html = `<div class="soal" id="soal${nomor}">
-          <p><b>${nomor}.</b> ${soal.tanya}</p>`;
+        let html = `<div class="soal" id="soal${nomor}">`;
+        // Jika soal ini yang kosong dan perlu warning, tampilkan warning
+        if (warningSoal === nomor) {
+          html += `<div class="warning">Soal ini belum dijawab. Silakan pilih salah satu jawaban sebelum melanjutkan!</div>`;
+        }
+        html += `<p><b>${nomor}.</b> ${soal.tanya}</p>`;
         soal.pilihan.forEach(pil => {
           let checked = jawabanUser[nomor] === pil ? "checked" : "";
           html += `<label>
               <input type="radio" name="soal${nomor}" value="${pil}" ${checked}
-              onchange="jawabanUser[${nomor}]='${pil}'"> ${pil}
+              onchange="jawabanUser[${nomor}]='${pil}'; warningSoal=null; loadSoal();"> ${pil}
             </label><br>`;
         });
         html += `</div>`;
@@ -116,6 +115,12 @@
       document.getElementById("prevBtn").disabled = currentPage === 0;
       document.getElementById("nextBtn").style.display = currentPage === Math.ceil(soalList.length/soalPerHalaman)-1 ? "none" : "inline-block";
       document.getElementById("submitBtn").style.display = currentPage === Math.ceil(soalList.length/soalPerHalaman)-1 ? "inline-block" : "none";
+
+      // Jika warningSoal pada halaman ini, scroll ke situ
+      if (warningSoal !== null) {
+        const ele = document.getElementById(`soal${warningSoal}`);
+        if (ele) ele.scrollIntoView({behavior: "smooth", block: "center"});
+      }
     }
 
     function nextPage() {
@@ -131,32 +136,30 @@
       }
 
       if (nomorKosong) {
-        showNotif("Masih ada soal yang belum dijawab! Silakan jawab terlebih dahulu.");
-        const ele = document.getElementById(`soal${nomorKosong}`);
-        if (ele) ele.scrollIntoView({behavior: "smooth", block: "center"});
+        warningSoal = nomorKosong;
+        loadSoal();
         return;
       }
-
+      warningSoal = null;
       currentPage++;
       loadSoal();
       window.scrollTo({top: 0, behavior: "smooth"});
     }
 
     function prevPage() {
+      warningSoal = null;
       currentPage--;
       loadSoal();
       window.scrollTo({top: 0, behavior: "smooth"});
     }
 
     function confirmSubmit() {
-      // Konfirmasi sebelum submit
       if (confirm("Yakin ingin mengirim jawaban? Setelah dikirim, jawaban tidak bisa diubah.")) {
         kirimJawaban();
       }
     }
 
     function kirimJawaban() {
-      // Cari soal kosong
       let nomorKosong = null;
       for (let i = 1; i <= soalList.length; i++) {
         if (!jawabanUser[i]) {
@@ -165,16 +168,12 @@
         }
       }
       if (nomorKosong) {
-        showNotif(`Soal nomor ${nomorKosong} belum dijawab!`);
-        // Pindah ke halaman soal kosong
+        warningSoal = nomorKosong;
         currentPage = Math.floor((nomorKosong - 1) / soalPerHalaman);
         loadSoal();
-        setTimeout(()=>{
-          const ele = document.getElementById(`soal${nomorKosong}`);
-          if (ele) ele.scrollIntoView({behavior: "smooth", block: "center"});
-        }, 200);
         return;
       }
+      warningSoal = null;
 
       let benar = 0;
       soalList.forEach((soal, index) => {
