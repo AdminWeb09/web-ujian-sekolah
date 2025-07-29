@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ulangan Online</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f8e9;
+            padding: 20px;
+        }
+        h2 {
+            text-align: center;
+        }
+        .info-siswa {
+            background: #fff9c4;
+            padding: 10px;
+            border: 1px solid #fbc02d;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .soal {
+            background: #fff;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 20px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #388e3c;
+        }
+        .benar {
+            color: green;
+            font-weight: bold;
+        }
+        .salah {
+            color: red;
+            font-weight: bold;
+        }
+        .hasil {
+            background: #e1f5fe;
+            padding: 10px;
+            margin-top: 15px;
+            border: 1px solid #81d4fa;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h2>Ulangan Online - Pilih Jawaban</h2>
+
+    <div class="info-siswa">
+        Login sebagai: <span id="namaSiswa"></span>
+    </div>
+
+    <form id="formUlangan">
+        <div class="soal">
+            <p>1. Ibu kota Indonesia adalah?</p>
+            <input type="radio" name="q1" value="Jakarta"> Jakarta<br>
+            <input type="radio" name="q1" value="Bandung"> Bandung<br>
+            <input type="radio" name="q1" value="Surabaya"> Surabaya<br>
+        </div>
+
+        <div class="soal">
+            <p>2. 2 + 5 = ?</p>
+            <input type="radio" name="q2" value="5"> 5<br>
+            <input type="radio" name="q2" value="7"> 7<br>
+            <input type="radio" name="q2" value="9"> 9<br>
+        </div>
+
+        <button type="button" onclick="periksaJawaban()">Kirim Jawaban</button>
+    </form>
+
+    <div id="hasil" class="hasil"></div>
+
+    <script>
+        // Ambil nama/email siswa yang login
+        let siswa = localStorage.getItem("siswaLogin");
+        document.getElementById("namaSiswa").textContent = siswa ? siswa : "Tidak diketahui";
+
+        // Kunci jawaban
+        const kunci = {
+            q1: "Jakarta",
+            q2: "7"
+        };
+
+        function periksaJawaban() {
+            let skor = 0;
+            let total = Object.keys(kunci).length;
+            let hasilTeks = "<h3>Hasil Ulangan:</h3>";
+
+            for (let soal in kunci) {
+                let jawaban = document.querySelector(`input[name="${soal}"]:checked`);
+                if (jawaban) {
+                    if (jawaban.value === kunci[soal]) {
+                        skor++;
+                        hasilTeks += `<p>${soal}: <span class="benar">Benar ✅</span></p>`;
+                    } else {
+                        hasilTeks += `<p>${soal}: <span class="salah">Salah ❌</span> (Jawaban benar: ${kunci[soal]})</p>`;
+                    }
+                } else {
+                    hasilTeks += `<p>${soal}: <span class="salah">Tidak dijawab ❌</span> (Jawaban benar: ${kunci[soal]})</p>`;
+                }
+            }
+
+            let nilai = (skor / total) * 100;
+            hasilTeks += `<h4>Nilai Anda: ${nilai}</h4>`;
+            document.getElementById("hasil").innerHTML = hasilTeks;
+        }
+    </script>
+</body>
+</html>
