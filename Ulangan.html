@@ -55,11 +55,11 @@
   </div>
 
   <script>
-    // ==== Data Soal (contoh 50 soal, benar semua opsi A) ====
+    // ==== Data Soal (contoh 50 soal, jawaban benar semua "A") ====
     let soalList = [];
     for (let i = 1; i <= 50; i++) {
       soalList.push({
-        tanya: `Soal ke-${i}: Apa jawaban yang benar?`,
+        tanya: `Soal ke-${i}: Pilih jawaban yang benar?`,
         pilihan: ["A", "B", "C", "D"],
         benar: "A"
       });
@@ -97,6 +97,26 @@
     }
 
     function nextPage() {
+      let start = currentPage * soalPerHalaman;
+      let end = start + soalPerHalaman;
+      let adaKosong = false;
+      let nomorKosong = null;
+
+      for (let i = start + 1; i <= end; i++) {
+        if (!jawabanUser[i]) {
+          adaKosong = true;
+          nomorKosong = i;
+          break;
+        }
+      }
+
+      if (adaKosong) {
+        alert("Masih ada soal yang belum dijawab!");
+        const ele = document.querySelector(`input[name='soal${nomorKosong}']`);
+        if (ele) ele.scrollIntoView({behavior: "smooth", block: "center"});
+        return;
+      }
+
       currentPage++;
       loadSoal();
     }
@@ -107,6 +127,17 @@
     }
 
     function kirimJawaban() {
+      for (let i = 1; i <= soalList.length; i++) {
+        if (!jawabanUser[i]) {
+          alert(`Soal nomor ${i} belum dijawab!`);
+          currentPage = Math.floor((i - 1) / soalPerHalaman);
+          loadSoal();
+          const ele = document.querySelector(`input[name='soal${i}']`);
+          if (ele) setTimeout(() => ele.scrollIntoView({behavior: "smooth", block: "center"}), 300);
+          return;
+        }
+      }
+
       let benar = 0;
       soalList.forEach((soal, index) => {
         let no = index+1;
@@ -122,7 +153,12 @@
       document.getElementById("submitBtn").style.display = "none";
     }
 
-    // Load pertama kali
+    // Cek login
+    if (!localStorage.getItem("user")) {
+      alert("Kamu harus login dulu!");
+      window.location.href = "index.html";
+    }
+
     loadSoal();
   </script>
 </body>
