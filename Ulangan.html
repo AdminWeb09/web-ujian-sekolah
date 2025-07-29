@@ -38,10 +38,6 @@
       background: #ccc;
       cursor: not-allowed;
     }
-    button.reset-btn {
-      background: #ff9800;
-      margin-left: 0;
-    }
     button#submitBtn {
       background: #2196F3;
     }
@@ -69,7 +65,6 @@
       <button id="prevBtn" onclick="prevPage()">Sebelumnya</button>
       <button id="nextBtn" onclick="nextPage()">Berikutnya</button>
       <button id="submitBtn" onclick="confirmSubmit()" style="display:none;">Kirim Jawaban</button>
-      <button id="resetBtn" class="reset-btn" onclick="resetUlangan()" style="display:none;">Ulangi Ulangan</button>
     </div>
     <h3 id="hasil"></h3>
   </div>
@@ -87,19 +82,7 @@
 
     let currentPage = 0;
     const soalPerHalaman = 10;
-    // Load jawaban dari localStorage jika ada
     let jawabanUser = {};
-    if (localStorage.getItem('jawabanUser')) {
-      try {
-        jawabanUser = JSON.parse(localStorage.getItem('jawabanUser')) || {};
-      } catch(e) {
-        jawabanUser = {};
-      }
-    }
-
-    function saveJawaban() {
-      localStorage.setItem('jawabanUser', JSON.stringify(jawabanUser));
-    }
 
     function showNotif(msg) {
       const el = document.getElementById('notif');
@@ -117,13 +100,13 @@
 
       soalList.slice(start, end).forEach((soal, idx) => {
         let nomor = start + idx + 1;
-        let html = `<div class="soal">
+        let html = `<div class="soal" id="soal${nomor}">
           <p><b>${nomor}.</b> ${soal.tanya}</p>`;
         soal.pilihan.forEach(pil => {
           let checked = jawabanUser[nomor] === pil ? "checked" : "";
           html += `<label>
               <input type="radio" name="soal${nomor}" value="${pil}" ${checked}
-              onchange="jawabanUser[${nomor}]='${pil}'; saveJawaban();"> ${pil}
+              onchange="jawabanUser[${nomor}]='${pil}'"> ${pil}
             </label><br>`;
         });
         html += `</div>`;
@@ -133,57 +116,64 @@
       document.getElementById("prevBtn").disabled = currentPage === 0;
       document.getElementById("nextBtn").style.display = currentPage === Math.ceil(soalList.length/soalPerHalaman)-1 ? "none" : "inline-block";
       document.getElementById("submitBtn").style.display = currentPage === Math.ceil(soalList.length/soalPerHalaman)-1 ? "inline-block" : "none";
-      document.getElementById("resetBtn").style.display = "none";
-      document.getElementById("hasil").innerText = "";
     }
 
     function nextPage() {
       let start = currentPage * soalPerHalaman;
       let end = start + soalPerHalaman;
-      let adaKosong = false;
       let nomorKosong = null;
 
       for (let i = start + 1; i <= end && i <= soalList.length; i++) {
         if (!jawabanUser[i]) {
-          adaKosong = true;
           nomorKosong = i;
           break;
         }
       }
 
-      if (adaKosong) {
-        showNotif("Masih ada soal yang belum dijawab!");
-        const ele = document.querySelector(`input[name='soal${nomorKosong}']`);
+      if (nomorKosong) {
+        showNotif("Masih ada soal yang belum dijawab! Silakan jawab terlebih dahulu.");
+        const ele = document.getElementById(`soal${nomorKosong}`);
         if (ele) ele.scrollIntoView({behavior: "smooth", block: "center"});
         return;
       }
 
       currentPage++;
       loadSoal();
+      window.scrollTo({top: 0, behavior: "smooth"});
     }
 
     function prevPage() {
       currentPage--;
       loadSoal();
+      window.scrollTo({top: 0, behavior: "smooth"});
     }
 
     function confirmSubmit() {
-      // Konfirmasi
+      // Konfirmasi sebelum submit
       if (confirm("Yakin ingin mengirim jawaban? Setelah dikirim, jawaban tidak bisa diubah.")) {
         kirimJawaban();
       }
     }
 
     function kirimJawaban() {
+      // Cari soal kosong
+      let nomorKosong = null;
       for (let i = 1; i <= soalList.length; i++) {
         if (!jawabanUser[i]) {
-          showNotif(`Soal nomor ${i} belum dijawab!`);
-          currentPage = Math.floor((i - 1) / soalPerHalaman);
-          loadSoal();
-          const ele = document.querySelector(`input[name='soal${i}']`);
-          if (ele) setTimeout(() => ele.scrollIntoView({behavior: "smooth", block: "center"}), 300);
-          return;
+          nomorKosong = i;
+          break;
         }
+      }
+      if (nomorKosong) {
+        showNotif(`Soal nomor ${nomorKosong} belum dijawab!`);
+        // Pindah ke halaman soal kosong
+        currentPage = Math.floor((nomorKosong - 1) / soalPerHalaman);
+        loadSoal();
+        setTimeout(()=>{
+          const ele = document.getElementById(`soal${nomorKosong}`);
+          if (ele) ele.scrollIntoView({behavior: "smooth", block: "center"});
+        }, 200);
+        return;
       }
 
       let benar = 0;
@@ -199,27 +189,8 @@
       document.getElementById("prevBtn").style.display = "none";
       document.getElementById("nextBtn").style.display = "none";
       document.getElementById("submitBtn").style.display = "none";
-      document.getElementById("resetBtn").style.display = "inline-block";
-      saveJawaban();
-      // Hapus jawaban dari localStorage agar saat ulangi kosong lagi
-      localStorage.removeItem('jawabanUser');
     }
 
-    function resetUlangan() {
-      if (confirm("Ulangi ulangan dari awal? Semua jawaban akan dihapus!")) {
-        jawabanUser = {};
-        currentPage = 0;
-        document.getElementById("soal-container").style.display = "block";
-        document.getElementById("prevBtn").style.display = "inline-block";
-        document.getElementById("nextBtn").style.display = "inline-block";
-        document.getElementById("hasil").innerText = "";
-        document.getElementById("resetBtn").style.display = "none";
-        saveJawaban();
-        loadSoal();
-      }
-    }
-
-    // On first load
     loadSoal();
   </script>
 </body>
