@@ -1,124 +1,129 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ulangan Online</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f1f8e9;
-            padding: 20px;
-        }
-        h2 {
-            text-align: center;
-        }
-        .info-siswa {
-            background: #fff9c4;
-            padding: 10px;
-            border: 1px solid #fbc02d;
-            margin-bottom: 15px;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        .soal {
-            background: #fff;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        button {
-            padding: 10px 20px;
-            background: #4caf50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background: #388e3c;
-        }
-        .benar {
-            color: green;
-            font-weight: bold;
-        }
-        .salah {
-            color: red;
-            font-weight: bold;
-        }
-        .hasil {
-            background: #e1f5fe;
-            padding: 10px;
-            margin-top: 15px;
-            border: 1px solid #81d4fa;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Ulangan Online</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f1f8e9;
+      padding: 20px;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .soal {
+      margin-bottom: 20px;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+    button {
+      margin: 10px 5px;
+      padding: 10px 20px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    h3 {
+      color: #333;
+    }
+  </style>
 </head>
 <body>
-    <h2>Ulangan Online - Pilih Jawaban</h2>
-
-    <div class="info-siswa">
-        Login sebagai: <span id="namaSiswa"></span>
+  <div class="container">
+    <h2>Ulangan Sekolah</h2>
+    <div id="soal-container"></div>
+    <div>
+      <button id="prevBtn" onclick="prevPage()">Sebelumnya</button>
+      <button id="nextBtn" onclick="nextPage()">Berikutnya</button>
+      <button id="submitBtn" onclick="kirimJawaban()" style="display:none;background:#2196F3;">Kirim Jawaban</button>
     </div>
+    <h3 id="hasil"></h3>
+  </div>
 
-    <form id="formUlangan">
-        <div class="soal">
-            <p>1. Ibu kota Indonesia adalah?</p>
-            <input type="radio" name="q1" value="Jakarta"> Jakarta<br>
-            <input type="radio" name="q1" value="Bandung"> Bandung<br>
-            <input type="radio" name="q1" value="Surabaya"> Surabaya<br>
-        </div>
+  <script>
+    // ==== Data Soal (contoh 50 soal, benar semua opsi A) ====
+    let soalList = [];
+    for (let i = 1; i <= 50; i++) {
+      soalList.push({
+        tanya: `Soal ke-${i}: Apa jawaban yang benar?`,
+        pilihan: ["A", "B", "C", "D"],
+        benar: "A"
+      });
+    }
 
-        <div class="soal">
-            <p>2. 2 + 5 = ?</p>
-            <input type="radio" name="q2" value="5"> 5<br>
-            <input type="radio" name="q2" value="7"> 7<br>
-            <input type="radio" name="q2" value="9"> 9<br>
-        </div>
+    let currentPage = 0;
+    const soalPerHalaman = 10;
+    let jawabanUser = {};
 
-        <button type="button" onclick="periksaJawaban()">Kirim Jawaban</button>
-    </form>
+    function loadSoal() {
+      const container = document.getElementById("soal-container");
+      container.innerHTML = "";
 
-    <div id="hasil" class="hasil"></div>
+      let start = currentPage * soalPerHalaman;
+      let end = start + soalPerHalaman;
 
-    <script>
-        // Ambil nama/email siswa yang login
-        let siswa = localStorage.getItem("siswaLogin");
-        document.getElementById("namaSiswa").textContent = siswa ? siswa : "Tidak diketahui";
+      soalList.slice(start, end).forEach((soal, idx) => {
+        let nomor = start + idx + 1;
+        let html = `<div class="soal">
+          <p><b>${nomor}.</b> ${soal.tanya}</p>`;
+        soal.pilihan.forEach(pil => {
+          let checked = jawabanUser[nomor] === pil ? "checked" : "";
+          html += `<label>
+              <input type="radio" name="soal${nomor}" value="${pil}" ${checked} 
+              onchange="jawabanUser[${nomor}]='${pil}'"> ${pil}
+            </label><br>`;
+        });
+        html += `</div>`;
+        container.innerHTML += html;
+      });
 
-        // Kunci jawaban
-        const kunci = {
-            q1: "Jakarta",
-            q2: "7"
-        };
+      document.getElementById("prevBtn").disabled = currentPage === 0;
+      document.getElementById("nextBtn").style.display = currentPage === Math.ceil(soalList.length/soalPerHalaman)-1 ? "none" : "inline-block";
+      document.getElementById("submitBtn").style.display = currentPage === Math.ceil(soalList.length/soalPerHalaman)-1 ? "inline-block" : "none";
+    }
 
-        function periksaJawaban() {
-            let skor = 0;
-            let total = Object.keys(kunci).length;
-            let hasilTeks = "<h3>Hasil Ulangan:</h3>";
+    function nextPage() {
+      currentPage++;
+      loadSoal();
+    }
 
-            for (let soal in kunci) {
-                let jawaban = document.querySelector(`input[name="${soal}"]:checked`);
-                if (jawaban) {
-                    if (jawaban.value === kunci[soal]) {
-                        skor++;
-                        hasilTeks += `<p>${soal}: <span class="benar">Benar ✅</span></p>`;
-                    } else {
-                        hasilTeks += `<p>${soal}: <span class="salah">Salah ❌</span> (Jawaban benar: ${kunci[soal]})</p>`;
-                    }
-                } else {
-                    hasilTeks += `<p>${soal}: <span class="salah">Tidak dijawab ❌</span> (Jawaban benar: ${kunci[soal]})</p>`;
-                }
-            }
+    function prevPage() {
+      currentPage--;
+      loadSoal();
+    }
 
-            let nilai = (skor / total) * 100;
-            hasilTeks += `<h4>Nilai Anda: ${nilai}</h4>`;
-            document.getElementById("hasil").innerHTML = hasilTeks;
+    function kirimJawaban() {
+      let benar = 0;
+      soalList.forEach((soal, index) => {
+        let no = index+1;
+        if(jawabanUser[no] === soal.benar){
+          benar++;
         }
-    </script>
+      });
+      let nilai = (benar / soalList.length) * 100;
+      document.getElementById("hasil").innerText = `Nilai kamu: ${nilai.toFixed(2)} (Benar ${benar} dari ${soalList.length})`;
+      document.getElementById("soal-container").style.display = "none";
+      document.getElementById("prevBtn").style.display = "none";
+      document.getElementById("nextBtn").style.display = "none";
+      document.getElementById("submitBtn").style.display = "none";
+    }
+
+    // Load pertama kali
+    loadSoal();
+  </script>
 </body>
 </html>
