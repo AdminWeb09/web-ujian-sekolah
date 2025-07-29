@@ -58,9 +58,10 @@
       const email = document.getElementById('email').value;
       const pass = document.getElementById('password').value;
 
+      // cek login
       if (users[email] && users[email] === pass) {
-        localStorage.setItem("user", email);
-        window.location.href = "ulangan.html";
+        localStorage.setItem("user", email);  // simpan data login
+        window.location.href = "ulangan.html"; // arahkan ke soal
       } else {
         alert("Email atau sandi salah!");
       }
